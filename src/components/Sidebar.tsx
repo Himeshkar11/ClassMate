@@ -3,11 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, 
   CalendarCheck, 
-  Clock, 
-  CheckSquare, 
-  TrendingUp, 
-  BarChart3, 
-  Settings, 
+  ScanLine,
+  QrCode,
   LogOut,
   GraduationCap
 } from 'lucide-react';
@@ -22,16 +19,18 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setIsOpen }) => {
-  const { logout } = useApp();
+  const { logout, user } = useApp();
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, color: 'text-blue-500' },
-    { id: 'attendance', label: 'Attendance', icon: CalendarCheck, color: 'text-purple-500' },
-    { id: 'schedule', label: 'Schedule', icon: Clock, color: 'text-pink-500' },
-    { id: 'tasks', label: 'Tasks', icon: CheckSquare, color: 'text-orange-500' },
-    { id: 'productivity', label: 'Productivity', icon: TrendingUp, color: 'text-cyan-500' },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-indigo-500' },
+  const teacherMenuItems = [
+    { id: 'dashboard', label: 'QR Scanner', icon: ScanLine, color: 'text-blue-500' },
+    { id: 'attendance', label: 'Class Attendance', icon: CalendarCheck, color: 'text-purple-500' },
   ];
+
+  const studentMenuItems = [
+    { id: 'dashboard', label: 'Generate QR', icon: QrCode, color: 'text-blue-500' },
+  ];
+
+  const menuItems = user?.role === 'teacher' ? teacherMenuItems : studentMenuItems;
 
   return (
     <>

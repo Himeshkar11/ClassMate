@@ -1,31 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Subject, AttendanceRecord, ClassSession, Task, ProductivitySession, QRSession } from '../types';
+import { User, AttendanceRecord, StudentQRData } from '../types';
 import { STORAGE_KEYS, loadData, saveData, clearAllData } from '../utils/storage';
-import { INITIAL_SUBJECTS, MOCK_SCHEDULE, MOCK_TASKS, MOCK_ATTENDANCE, MOCK_PRODUCTIVITY } from '../data/mockData';
 
 interface AppContextType {
   user: User | null;
-  subjects: Subject[];
   attendance: AttendanceRecord[];
-  schedule: ClassSession[];
-  tasks: Task[];
-  productivity: ProductivitySession[];
-  qrSessions: QRSession[];
   loginStudent: (rollNumber: string) => boolean;
   loginTeacher: (email: string, password: string) => boolean;
   registerStudent: (user: User) => void;
   registerTeacher: (user: User) => void;
   logout: () => void;
-  addSubject: (subject: Subject) => void;
   addAttendance: (record: AttendanceRecord) => void;
-  addSchedule: (session: Omit<ClassSession, 'id'>) => void;
-  deleteSchedule: (sessionId: string) => void;
-  addTask: (task: Omit<Task, 'id'>) => void;
-  updateTask: (taskId: string, updates: Partial<Task>) => void;
-  deleteTask: (taskId: string) => void;
-  addProductivity: (session: ProductivitySession) => void;
-  createQRSession: (subjectId: string, expiryMinutes: number) => QRSession;
-  validateQRToken: (token: string) => QRSession | null;
+  getClassAttendance: (className: string, date?: string) => AttendanceRecord[];
+  markAttendanceFromQR: (qrData: StudentQRData) => { success: boolean; message: string };
   resetData: () => void;
 }
 
@@ -33,28 +20,22 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => loadData<User | null>(STORAGE_KEYS.USER, null));
-  const [subjects, setSubjects] = useState<Subject[]>(() => loadData<Subject[]>(STORAGE_KEYS.SUBJECTS, INITIAL_SUBJECTS));
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => loadData<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, MOCK_ATTENDANCE));
-  const [schedule, setSchedule] = useState<ClassSession[]>(() => loadData<ClassSession[]>(STORAGE_KEYS.SCHEDULE, MOCK_SCHEDULE));
-  const [tasks, setTasks] = useState<Task[]>(() => loadData<Task[]>(STORAGE_KEYS.TASKS, MOCK_TASKS));
-  const [productivity, setProductivity] = useState<ProductivitySession[]>(() => loadData<ProductivitySession[]>(STORAGE_KEYS.PRODUCTIVITY, MOCK_PRODUCTIVITY));
-  const [qrSessions, setQrSessions] = useState<QRSession[]>(() => loadData<QRSession[]>(STORAGE_KEYS.QR_SESSIONS, []));
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => loadData<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, []));
 
   useEffect(() => { saveData(STORAGE_KEYS.USER, user); }, [user]);
-  useEffect(() => { saveData(STORAGE_KEYS.SUBJECTS, subjects); }, [subjects]);
   useEffect(() => { saveData(STORAGE_KEYS.ATTENDANCE, attendance); }, [attendance]);
-  useEffect(() => { saveData(STORAGE_KEYS.SCHEDULE, schedule); }, [schedule]);
-  useEffect(() => { saveData(STORAGE_KEYS.TASKS, tasks); }, [tasks]);
-  useEffect(() => { saveData(STORAGE_KEYS.PRODUCTIVITY, productivity); }, [productivity]);
-  useEffect(() => { saveData(STORAGE_KEYS.QR_SESSIONS, qrSessions); }, [qrSessions]);
 
   const [teachers, setTeachers] = useState<User[]>(() => loadData<User[]>(STORAGE_KEYS.TEACHERS, []));
   useEffect(() => { saveData(STORAGE_KEYS.TEACHERS, teachers); }, [teachers]);
 
+  const [students, setStudents] = useState<User[]>(() => loadData<User[]>(STORAGE_KEYS.STUDENTS, []));
+  useEffect(() => { saveData(STORAGE_KEYS.STUDENTS, students); }, [students]);
+
   const loginStudent = (rollNumber: string) => {
-    const savedUser = loadData<User | null>(STORAGE_KEYS.USER, null);
-    if (savedUser && savedUser.rollNumber === rollNumber && savedUser.role === 'student') {
-      setUser(savedUser);
+    const savedStudents = loadData<User[]>(STORAGE_KEYS.STUDENTS, []);
+    const student = savedStudents.find(s => s.rollNumber === rollNumber && s.role === 'student');
+    if (student) {
+      setUser(student);
       return true;
     }
     return false;
@@ -71,7 +52,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const registerStudent = (newUser: User) => {
-    setUser({ ...newUser, role: 'student' });
+    const studentUser = { ...newUser, role: 'student' as const };
+    setStudents(prev => [...prev, studentUser]);
+    setUser(studentUser);
   };
 
   const registerTeacher = (newUser: User) => {
@@ -84,61 +67,64 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUser(null);
   };
 
-  const addSubject = (s: Subject) => setSubjects([...subjects, s]);
-  const addAttendance = (r: AttendanceRecord) => setAttendance([...attendance, r]);
-  const addSchedule = (s: Omit<ClassSession, 'id'>) => {
-    const newSession = { ...s, id: Math.random().toString(36).substr(2, 9) };
-    setSchedule([...schedule, newSession]);
-  };
-  const deleteSchedule = (id: string) => setSchedule(schedule.filter(s => s.id !== id));
-  
-  const addTask = (t: Omit<Task, 'id'>) => {
-    const newTask = { ...t, id: Math.random().toString(36).substr(2, 9) };
-    setTasks([...tasks, newTask]);
-  };
-  const updateTask = (id: string, updates: Partial<Task>) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, ...updates } : t));
-  };
-  const deleteTask = (id: string) => setTasks(tasks.filter(t => t.id !== id));
-  const addProductivity = (p: ProductivitySession) => setProductivity([...productivity, p]);
+  const addAttendance = (r: AttendanceRecord) => setAttendance(prev => [...prev, r]);
 
-  const createQRSession = (subjectId: string, expiryMinutes: number): QRSession => {
-    const now = Date.now();
-    const session: QRSession = {
+  const getClassAttendance = (className: string, date?: string): AttendanceRecord[] => {
+    return attendance.filter(r => {
+      const classMatch = r.className === className;
+      if (date) return classMatch && r.date === date;
+      return classMatch;
+    });
+  };
+
+  const markAttendanceFromQR = (qrData: StudentQRData): { success: boolean; message: string } => {
+    if (!user || user.role !== 'teacher') {
+      return { success: false, message: 'Only teachers can mark attendance.' };
+    }
+
+    const teacherClass = `${user.year} - ${user.section}`;
+    const studentClass = `${qrData.year} - ${qrData.section}`;
+
+    if (teacherClass !== studentClass) {
+      return { success: false, message: `This student belongs to ${studentClass}, not your class (${teacherClass}).` };
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const alreadyMarked = attendance.some(
+      r => r.studentRollNumber === qrData.rollNumber && r.date === today
+    );
+
+    if (alreadyMarked) {
+      return { success: false, message: `Attendance already marked for ${qrData.name} today.` };
+    }
+
+    const record: AttendanceRecord = {
       id: Math.random().toString(36).substr(2, 9),
-      subjectId,
-      date: new Date().toISOString().split('T')[0],
-      token: Math.random().toString(36).substr(2, 12) + now.toString(36),
-      createdAt: now,
-      expiresAt: now + expiryMinutes * 60 * 1000,
+      studentRollNumber: qrData.rollNumber,
+      studentName: qrData.name,
+      className: studentClass,
+      date: today,
+      status: 'present',
+      markedBy: user.email,
     };
-    setQrSessions(prev => [...prev, session]);
-    return session;
-  };
 
-  const validateQRToken = (token: string): QRSession | null => {
-    const session = qrSessions.find(s => s.token === token);
-    if (!session) return null;
-    if (Date.now() > session.expiresAt) return null;
-    return session;
+    addAttendance(record);
+    return { success: true, message: `Attendance marked for ${qrData.name} (${qrData.rollNumber}).` };
   };
 
   const resetData = () => {
     clearAllData();
     setUser(null);
-    setSubjects(INITIAL_SUBJECTS);
-    setAttendance(MOCK_ATTENDANCE);
-    setSchedule(MOCK_SCHEDULE);
-    setTasks(MOCK_TASKS);
-    setProductivity(MOCK_PRODUCTIVITY);
-    setQrSessions([]);
+    setAttendance([]);
+    setTeachers([]);
+    setStudents([]);
   };
 
   return (
     <AppContext.Provider value={{
-      user, subjects, attendance, schedule, tasks, productivity, qrSessions,
-      loginStudent, loginTeacher, registerStudent, registerTeacher, logout, addSubject, addAttendance, addSchedule, deleteSchedule,
-      addTask, updateTask, deleteTask, addProductivity, createQRSession, validateQRToken, resetData
+      user, attendance,
+      loginStudent, loginTeacher, registerStudent, registerTeacher, logout,
+      addAttendance, getClassAttendance, markAttendanceFromQR, resetData
     }}>
       {children}
     </AppContext.Provider>

@@ -1,197 +1,377 @@
-import React from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { useApp } from '../context/AppContext';
-import { StatCard } from '../components/StatCard';
-import { InsightCard } from '../components/InsightCard';
 import { cn } from '../utils/storage';
+import { StudentQRData } from '../types';
+import { QRCodeSVG } from 'qrcode.react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { 
-  Users, 
-  Clock, 
-  CheckSquare, 
-  TrendingUp, 
-  Calendar,
-  ArrowRight
+  QrCode, 
+  ScanLine, 
+  Check, 
+  X, 
+  Camera,
+  CameraOff,
+  Users,
+  CalendarCheck
 } from 'lucide-react';
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  BarChart,
-  Bar
-} from 'recharts';
 
-interface DashboardProps {
-  setActiveTab: (tab: string) => void;
-}
+// ─── Student Dashboard: Generate QR Code ───
+const StudentDashboard: React.FC = () => {
+  const { user } = useApp();
 
-export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
-  const { attendance, tasks, productivity, subjects, schedule } = useApp();
+  if (!user) return null;
 
-  // Calculate stats
-  const totalAttendance = attendance.length;
-  const presentCount = attendance.filter(r => r.status === 'present').length;
-  const attendancePercentage = totalAttendance > 0 ? ((presentCount / totalAttendance) * 100).toFixed(1) : '0';
-  
-  const totalStudyMinutes = productivity.reduce((acc, curr) => acc + curr.duration, 0);
-  const studyHours = (totalStudyMinutes / 60).toFixed(1);
-  
-  const pendingTasks = tasks.filter(t => !t.completed).length;
-  
-  const weeklyProductivity = [
-    { day: 'Mon', hours: 4 },
-    { day: 'Tue', hours: 6 },
-    { day: 'Wed', hours: 3 },
-    { day: 'Thu', hours: 7 },
-    { day: 'Fri', hours: 5 },
-    { day: 'Sat', hours: 2 },
-    { day: 'Sun', hours: 4 },
-  ];
+  const qrData: StudentQRData = {
+    rollNumber: user.rollNumber,
+    name: user.name,
+    department: user.department,
+    year: user.year,
+    section: user.section,
+  };
 
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-  const todaysClasses = schedule.filter(s => s.day === today);
+  const qrValue = JSON.stringify(qrData);
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Academic Overview</h1>
-          <p className="text-gray-500 mt-1 text-sm md:text-base">Track your progress and stay ahead of your schedule.</p>
-        </div>
-        <button 
-          onClick={() => setActiveTab('schedule')}
-          className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
-        >
-          View Full Schedule <ArrowRight size={18} />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Attendance" value={`${attendancePercentage}%`} icon={Users} color="blue" delay={0.1} />
-        <StatCard title="Study Hours" value={`${studyHours}h`} icon={Clock} color="purple" delay={0.2} />
-        <StatCard title="Pending Tasks" value={pendingTasks} icon={CheckSquare} color="pink" delay={0.3} />
-        <StatCard title="Productivity" value="High" icon={TrendingUp} color="orange" delay={0.4} />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="lg:col-span-2 bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100"
-        >
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-bold text-gray-900">Weekly Study Trends</h2>
-            <select className="bg-gray-50 border-none rounded-xl px-4 py-2 text-sm font-medium outline-none">
-              <option>Last 7 Days</option>
-              <option>Last 30 Days</option>
-            </select>
-          </div>
-          <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={weeklyProductivity}>
-                <defs>
-                  <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                  cursor={{ stroke: '#6366f1', strokeWidth: 2 }}
-                />
-                <Area type="monotone" dataKey="hours" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorHours)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100"
-        >
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Smart Insights</h2>
-          <InsightCard />
-        </motion.div>
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Your QR Code</h1>
+        <p className="text-gray-500 mt-1 text-sm md:text-base">Show this QR code to your teacher to mark attendance.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100"
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white p-8 sm:p-12 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center"
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Today's Classes</h2>
-            <span className="text-sm font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">{today}</span>
+          <div className="bg-white p-6 rounded-2xl border-2 border-dashed border-indigo-200 inline-block mb-6">
+            <QRCodeSVG 
+              value={qrValue} 
+              size={240} 
+              level="H"
+              includeMargin
+              bgColor="#ffffff"
+              fgColor="#1e1b4b"
+            />
           </div>
-          <div className="space-y-4">
-            {todaysClasses.length > 0 ? todaysClasses.map((cls, idx) => {
-              const subject = subjects.find(s => s.id === cls.subjectId);
-              return (
-                <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 group hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-gray-100">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold shadow-sm" style={{ backgroundColor: subject?.color }}>
-                    {subject?.name.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-bold text-gray-900">{subject?.name}</h4>
-                    <p className="text-xs text-gray-400 font-medium">{cls.startTime} - {cls.endTime} • {cls.room}</p>
-                  </div>
-                  <div className="p-2 rounded-lg bg-white text-gray-400 group-hover:text-indigo-600 transition-colors">
-                    <Calendar size={18} />
-                  </div>
-                </div>
-              );
-            }) : (
-              <div className="text-center py-10">
-                <p className="text-gray-400 italic">No classes scheduled for today.</p>
-              </div>
-            )}
+          <div className="text-center space-y-2">
+            <p className="text-lg font-bold text-gray-900">{user.name}</p>
+            <p className="text-sm text-gray-500">{user.rollNumber}</p>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-600">
+              <CalendarCheck size={12} />
+              {user.year} - {user.section}
+            </div>
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100"
+          transition={{ delay: 0.2 }}
+          className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100"
         >
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Upcoming Assignments</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-6">Your Details</h2>
           <div className="space-y-4">
-            {tasks.filter(t => !t.completed).slice(0, 3).map((task, idx) => {
-              const subject = subjects.find(s => s.id === task.subjectId);
-              return (
-                <div key={idx} className="p-4 rounded-2xl border border-gray-100 hover:border-indigo-200 transition-all group">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: subject?.color }}>{subject?.name}</span>
-                    <span className={cn(
-                      "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase",
-                      task.priority === 'High' ? 'bg-red-50 text-red-500' : 
-                      task.priority === 'Medium' ? 'bg-orange-50 text-orange-500' : 'bg-blue-50 text-blue-500'
-                    )}>
-                      {task.priority}
-                    </span>
-                  </div>
-                  <h4 className="font-bold text-gray-900 mb-1">{task.title}</h4>
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-gray-400">Deadline: {task.deadline}</p>
-                    <button className="text-xs font-bold text-indigo-600 hover:underline">Mark Done</button>
-                  </div>
-                </div>
-              );
-            })}
+            {[
+              { label: 'Name', value: user.name },
+              { label: 'Roll Number', value: user.rollNumber },
+              { label: 'Department', value: user.department },
+              { label: 'Year', value: user.year },
+              { label: 'Section', value: user.section },
+              { label: 'Email', value: user.email },
+            ].map((item, idx) => (
+              <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50">
+                <span className="text-sm font-medium text-gray-400">{item.label}</span>
+                <span className="text-sm font-bold text-gray-900">{item.value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
+            <p className="text-sm text-indigo-700 font-medium">
+              Show this QR code to your teacher when they scan for attendance. Your class is <strong>{user.year} - {user.section}</strong>.
+            </p>
           </div>
         </motion.div>
       </div>
     </div>
   );
+};
+
+// ─── Teacher Dashboard: QR Scanner + Today's Attendance ───
+const TeacherDashboard: React.FC = () => {
+  const { user, attendance, markAttendanceFromQR } = useApp();
+  const [scanResult, setScanResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerContainerRef = useRef<HTMLDivElement>(null);
+
+  const teacherClass = user ? `${user.year} - ${user.section}` : '';
+  const today = new Date().toISOString().split('T')[0];
+  const todayAttendance = attendance.filter(r => r.className === teacherClass && r.date === today);
+
+  // Cleanup scanner on unmount
+  useEffect(() => {
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {});
+        scannerRef.current.clear();
+        scannerRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleScanSuccess = useCallback((decodedText: string) => {
+    try {
+      const data = JSON.parse(decodedText) as StudentQRData;
+      if (!data.rollNumber || !data.name || !data.year || !data.section) {
+        setScanResult({ success: false, message: 'Invalid QR code format.' });
+      } else {
+        const result = markAttendanceFromQR(data);
+        setScanResult(result);
+      }
+    } catch {
+      setScanResult({ success: false, message: 'Invalid QR code format.' });
+    }
+
+    // Stop scanner after a read
+    if (scannerRef.current) {
+      scannerRef.current.stop().catch(() => {});
+      setIsScanning(false);
+    }
+  }, [markAttendanceFromQR]);
+
+  const startScanner = async () => {
+    setScanResult(null);
+    if (!scannerContainerRef.current) return;
+
+    try {
+      if (scannerRef.current) {
+        await scannerRef.current.stop().catch(() => {});
+        scannerRef.current.clear();
+      }
+    } catch {
+      // ignore cleanup errors
+    }
+
+    const scannerId = 'qr-scanner-element';
+    if (!document.getElementById(scannerId)) {
+      const div = document.createElement('div');
+      div.id = scannerId;
+      scannerContainerRef.current.innerHTML = '';
+      scannerContainerRef.current.appendChild(div);
+    }
+
+    try {
+      const html5QrCode = new Html5Qrcode(scannerId);
+      scannerRef.current = html5QrCode;
+      setIsScanning(true);
+
+      await html5QrCode.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        handleScanSuccess,
+        () => {}
+      );
+    } catch (err) {
+      console.error('Scanner error:', err);
+      setScanResult({ success: false, message: 'Could not access camera. Please allow camera permissions.' });
+      setIsScanning(false);
+    }
+  };
+
+  const stopScanner = async () => {
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.stop();
+      } catch {
+        // ignore
+      }
+      setIsScanning(false);
+    }
+  };
+
+  const [manualCode, setManualCode] = useState('');
+  const handleManualSubmit = () => {
+    if (!manualCode.trim()) return;
+    handleScanSuccess(manualCode.trim());
+    setManualCode('');
+  };
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">QR Scanner</h1>
+        <p className="text-gray-500 mt-1 text-sm md:text-base">
+          Scan student QR codes to mark attendance for <strong>{teacherClass}</strong>.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Scanner */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100"
+        >
+          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <ScanLine size={22} className="text-indigo-500" />
+            Scan Student QR
+          </h2>
+
+          <div className="space-y-4">
+            <div 
+              ref={scannerContainerRef}
+              className="w-full aspect-square max-w-sm mx-auto rounded-2xl overflow-hidden bg-gray-900 relative"
+            >
+              {!isScanning && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 gap-3">
+                  <Camera size={48} strokeWidth={1} />
+                  <p className="text-sm font-medium">Camera preview</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              {!isScanning ? (
+                <button
+                  onClick={startScanner}
+                  className="flex-1 py-3 bg-indigo-500 text-white font-bold rounded-2xl hover:bg-indigo-600 transition-all flex items-center justify-center gap-2"
+                >
+                  <Camera size={16} />
+                  Start Scanning
+                </button>
+              ) : (
+                <button
+                  onClick={stopScanner}
+                  className="flex-1 py-3 bg-red-500 text-white font-bold rounded-2xl hover:bg-red-600 transition-all flex items-center justify-center gap-2"
+                >
+                  <CameraOff size={16} />
+                  Stop Scanning
+                </button>
+              )}
+            </div>
+
+            {/* Manual code entry */}
+            <div className="pt-4 border-t border-gray-100">
+              <p className="text-xs font-medium text-gray-400 mb-3">Or paste the QR data manually:</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value)}
+                  placeholder='Paste QR data here...'
+                  className="flex-1 bg-gray-50 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleManualSubmit(); }}
+                />
+                <button
+                  onClick={handleManualSubmit}
+                  className="px-4 py-2.5 bg-indigo-500 text-white rounded-xl font-bold text-sm hover:bg-indigo-600 transition-all"
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Scan Result + Today's Attendance */}
+        <div className="space-y-8">
+          {/* Scan result feedback */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 flex items-center justify-center min-h-[200px]"
+          >
+            {scanResult ? (
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="text-center space-y-4"
+              >
+                <div className={cn(
+                  "w-20 h-20 rounded-full flex items-center justify-center mx-auto",
+                  scanResult.success ? "bg-emerald-100" : "bg-red-100"
+                )}>
+                  {scanResult.success ? (
+                    <Check size={36} className="text-emerald-600" />
+                  ) : (
+                    <X size={36} className="text-red-600" />
+                  )}
+                </div>
+                <div>
+                  <h3 className={cn(
+                    "text-lg font-bold",
+                    scanResult.success ? "text-emerald-600" : "text-red-600"
+                  )}>
+                    {scanResult.success ? 'Attendance Marked!' : 'Scan Failed'}
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">{scanResult.message}</p>
+                </div>
+                <button
+                  onClick={() => setScanResult(null)}
+                  className="px-6 py-2.5 bg-gray-100 text-gray-600 font-bold rounded-xl text-sm hover:bg-gray-200 transition-all"
+                >
+                  Scan Again
+                </button>
+              </motion.div>
+            ) : (
+              <div className="text-center space-y-3 text-gray-400">
+                <ScanLine size={64} strokeWidth={1} />
+                <p className="text-sm font-medium">Scan a student's QR code to mark attendance</p>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Today's attendance count */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Users size={20} className="text-indigo-500" />
+                Today's Attendance
+              </h3>
+              <span className="text-xs font-bold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full">
+                {todayAttendance.length} students
+              </span>
+            </div>
+            {todayAttendance.length > 0 ? (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {todayAttendance.map((record, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">{record.studentName}</p>
+                      <p className="text-xs text-gray-400">{record.studentRollNumber}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-emerald-600">
+                      <Check size={14} />
+                      <span className="text-xs font-bold">Present</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-6">No attendance marked yet today.</p>
+            )}
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Dashboard: Routes by role ───
+export const Dashboard: React.FC = () => {
+  const { user } = useApp();
+
+  if (user?.role === 'teacher') {
+    return <TeacherDashboard />;
+  }
+
+  return <StudentDashboard />;
 };

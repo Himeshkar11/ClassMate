@@ -5,54 +5,26 @@ export interface User {
   rollNumber: string;
   department: string;
   year: string;
+  section: string;
   email: string;
   role: UserRole;
   password?: string;
 }
 
-export interface Subject {
-  id: string;
-  name: string;
-  color: string;
-}
-
 export interface AttendanceRecord {
   id: string;
-  subjectId: string;
+  studentRollNumber: string;
+  studentName: string;
+  className: string; // e.g., "1st Year - Section 3"
   date: string;
-  status: 'present' | 'absent';
+  status: 'present';
+  markedBy: string; // teacher email
 }
 
-export interface QRSession {
-  id: string;
-  subjectId: string;
-  date: string;
-  token: string;
-  createdAt: number;
-  expiresAt: number;
-}
-
-export interface ClassSession {
-  id: string;
-  subjectId: string;
-  day: string; // 'Monday', 'Tuesday', etc.
-  startTime: string;
-  endTime: string;
-  room: string;
-}
-
-export interface Task {
-  id: string;
-  title: string;
-  subjectId: string;
-  deadline: string;
-  priority: 'High' | 'Medium' | 'Low';
-  completed: boolean;
-}
-
-export interface ProductivitySession {
-  id: string;
-  subjectId: string;
-  date: string;
-  duration: number; // in minutes
+export interface StudentQRData {
+  rollNumber: string;
+  name: string;
+  department: string;
+  year: string;
+  section: string;
 }

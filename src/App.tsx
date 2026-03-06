@@ -10,10 +10,6 @@ import { Sidebar } from './components/Sidebar';
 import { Navbar } from './components/Navbar';
 import { Dashboard } from './pages/Dashboard';
 import { Attendance } from './pages/Attendance';
-import { Schedule } from './pages/Schedule';
-import { Tasks } from './pages/Tasks';
-import { Productivity } from './pages/Productivity';
-import { Analytics } from './pages/Analytics';
 import { motion, AnimatePresence } from 'motion/react';
 
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -28,15 +24,15 @@ const AppContent: React.FC = () => {
   }
 
   const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard': return <Dashboard setActiveTab={setActiveTab} />;
-      case 'attendance': return <Attendance />;
-      case 'schedule': return <Schedule />;
-      case 'tasks': return <Tasks />;
-      case 'productivity': return <Productivity />;
-      case 'analytics': return <Analytics />;
-      default: return <Dashboard setActiveTab={setActiveTab} />;
+    if (user.role === 'teacher') {
+      switch (activeTab) {
+        case 'dashboard': return <Dashboard />;
+        case 'attendance': return <Attendance />;
+        default: return <Dashboard />;
+      }
     }
+    // Student: only dashboard (QR generation)
+    return <Dashboard />;
   };
 
   return (

@@ -8,12 +8,8 @@ export function cn(...inputs: ClassValue[]) {
 export const STORAGE_KEYS = {
   USER: 'classmate_user',
   ATTENDANCE: 'classmate_attendance',
-  SCHEDULE: 'classmate_schedule',
-  TASKS: 'classmate_tasks',
-  PRODUCTIVITY: 'classmate_productivity',
-  SUBJECTS: 'classmate_subjects',
-  QR_SESSIONS: 'classmate_qr_sessions',
   TEACHERS: 'classmate_teachers',
+  STUDENTS: 'classmate_students',
 };
 
 export const loadData = <T,>(key: string, defaultValue: T): T => {

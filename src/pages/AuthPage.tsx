@@ -17,6 +17,7 @@ export const AuthPage: React.FC = () => {
     rollNumber: '',
     department: '',
     year: '',
+    section: '',
     email: '',
   });
 
@@ -26,6 +27,8 @@ export const AuthPage: React.FC = () => {
     email: '',
     password: '',
     department: '',
+    year: '',
+    section: '',
   });
 
   const [error, setError] = useState('');
@@ -38,7 +41,7 @@ export const AuthPage: React.FC = () => {
       const success = loginStudent(studentForm.rollNumber);
       if (!success) setError('Roll number not found. Please register first.');
     } else {
-      if (!studentForm.name || !studentForm.rollNumber || !studentForm.department || !studentForm.year || !studentForm.email) {
+      if (!studentForm.name || !studentForm.rollNumber || !studentForm.department || !studentForm.year || !studentForm.section || !studentForm.email) {
         setError('All fields are required.');
         return;
       }
@@ -65,7 +68,7 @@ export const AuthPage: React.FC = () => {
       const success = loginTeacher(teacherForm.email, teacherForm.password);
       if (!success) setError('Invalid email or password.');
     } else {
-      if (!teacherForm.name || !teacherForm.email || !teacherForm.password || !teacherForm.department) {
+      if (!teacherForm.name || !teacherForm.email || !teacherForm.password || !teacherForm.department || !teacherForm.year || !teacherForm.section) {
         setError('All fields are required.');
         return;
       }
@@ -82,8 +85,9 @@ export const AuthPage: React.FC = () => {
         email: teacherForm.email,
         password: teacherForm.password,
         department: teacherForm.department,
+        year: teacherForm.year,
+        section: teacherForm.section,
         rollNumber: '',
-        year: '',
         role: 'teacher',
       });
     }
@@ -189,22 +193,35 @@ export const AuthPage: React.FC = () => {
                       type="text" 
                       required
                       className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                      placeholder="3rd Year"
+                      placeholder="1st Year"
                       value={studentForm.year}
                       onChange={e => setStudentForm({...studentForm, year: e.target.value})}
                     />
                   </div>
                 </motion.div>
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                  <input 
-                    type="email" 
-                    required
-                    className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                    placeholder="rahul@example.com"
-                    value={studentForm.email}
-                    onChange={e => setStudentForm({...studentForm, email: e.target.value})}
-                  />
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Section</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                      placeholder="Section 3"
+                      value={studentForm.section}
+                      onChange={e => setStudentForm({...studentForm, section: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input 
+                      type="email" 
+                      required
+                      className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                      placeholder="rahul@example.com"
+                      value={studentForm.email}
+                      onChange={e => setStudentForm({...studentForm, email: e.target.value})}
+                    />
+                  </div>
                 </motion.div>
               </>
             )}
@@ -264,17 +281,43 @@ export const AuthPage: React.FC = () => {
             </div>
 
             {authMode === 'register' && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                <input 
-                  type="text" 
-                  required
-                  className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
-                  placeholder="Computer Science"
-                  value={teacherForm.department}
-                  onChange={e => setTeacherForm({...teacherForm, department: e.target.value})}
-                />
-              </motion.div>
+              <>
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                  <input 
+                    type="text" 
+                    required
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                    placeholder="Computer Science"
+                    value={teacherForm.department}
+                    onChange={e => setTeacherForm({...teacherForm, department: e.target.value})}
+                  />
+                </motion.div>
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Class Year</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                      placeholder="1st Year"
+                      value={teacherForm.year}
+                      onChange={e => setTeacherForm({...teacherForm, year: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Section</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                      placeholder="Section 3"
+                      value={teacherForm.section}
+                      onChange={e => setTeacherForm({...teacherForm, section: e.target.value})}
+                    />
+                  </div>
+                </motion.div>
+              </>
             )}
 
             {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
