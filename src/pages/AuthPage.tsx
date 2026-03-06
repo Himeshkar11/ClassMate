@@ -1,33 +1,91 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { motion } from 'motion/react';
-import { LogIn, UserPlus, GraduationCap } from 'lucide-react';
+import { LogIn, UserPlus, GraduationCap, BookOpen, Shield } from 'lucide-react';
+
+type AuthRole = 'student' | 'teacher';
+type AuthMode = 'login' | 'register';
 
 export const AuthPage: React.FC = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const { login, register } = useApp();
-  const [formData, setFormData] = useState({
+  const [authRole, setAuthRole] = useState<AuthRole>('student');
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
+  const { loginStudent, loginTeacher, registerStudent, registerTeacher } = useApp();
+
+  // Student form data
+  const [studentForm, setStudentForm] = useState({
     name: '',
     rollNumber: '',
     department: '',
     year: '',
     email: '',
   });
+
+  // Teacher form data
+  const [teacherForm, setTeacherForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    department: '',
+  });
+
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleStudentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (isLogin) {
-      const success = login(formData.rollNumber);
-      if (!success) setError('Roll number not found. Please register.');
+    if (authMode === 'login') {
+      const success = loginStudent(studentForm.rollNumber);
+      if (!success) setError('Roll number not found. Please register first.');
     } else {
-      if (!formData.name || !formData.rollNumber || !formData.department || !formData.year || !formData.email) {
+      if (!studentForm.name || !studentForm.rollNumber || !studentForm.department || !studentForm.year || !studentForm.email) {
         setError('All fields are required.');
         return;
       }
-      register(formData);
+      registerStudent({
+        ...studentForm,
+        role: 'student',
+      });
+    }
+  };
+
+  const handleTeacherSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (authMode === 'login') {
+      if (!teacherForm.email || !teacherForm.password) {
+        setError('Email and password are required.');
+        return;
+      }
+      if (!teacherForm.email.endsWith('@class.edu')) {
+        setError('Teacher email must end with @class.edu');
+        return;
+      }
+      const success = loginTeacher(teacherForm.email, teacherForm.password);
+      if (!success) setError('Invalid email or password.');
+    } else {
+      if (!teacherForm.name || !teacherForm.email || !teacherForm.password || !teacherForm.department) {
+        setError('All fields are required.');
+        return;
+      }
+      if (!teacherForm.email.endsWith('@class.edu')) {
+        setError('Teacher email must end with @class.edu');
+        return;
+      }
+      if (teacherForm.password.length < 6) {
+        setError('Password must be at least 6 characters.');
+        return;
+      }
+      registerTeacher({
+        name: teacherForm.name,
+        email: teacherForm.email,
+        password: teacherForm.password,
+        department: teacherForm.department,
+        rollNumber: '',
+        year: '',
+        role: 'teacher',
+      });
     }
   };
 
@@ -48,98 +106,188 @@ export const AuthPage: React.FC = () => {
           <p className="text-gray-500 mt-2 text-sm sm:text-base">Your Smart Academic Companion</p>
         </div>
 
-        <div className="flex bg-gray-100 p-1 rounded-xl mb-8">
+        {/* Role Toggle: Student / Teacher */}
+        <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
           <button 
-            onClick={() => setIsLogin(true)}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${isLogin ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => { setAuthRole('student'); setError(''); }}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${authRole === 'student' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <BookOpen size={16} />
+            Student
+          </button>
+          <button 
+            onClick={() => { setAuthRole('teacher'); setError(''); }}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${authRole === 'teacher' ? 'bg-white shadow-sm text-purple-600' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <Shield size={16} />
+            Teacher
+          </button>
+        </div>
+
+        {/* Login / Register Toggle */}
+        <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
+          <button 
+            onClick={() => { setAuthMode('login'); setError(''); }}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${authMode === 'login' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
           >
             Login
           </button>
           <button 
-            onClick={() => setIsLogin(false)}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${!isLogin ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => { setAuthMode('register'); setError(''); }}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${authMode === 'register' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
           >
             Register
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+        {/* STUDENT FORM */}
+        {authRole === 'student' && (
+          <form onSubmit={handleStudentSubmit} className="space-y-4">
+            {authMode === 'register' && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input 
+                  type="text" 
+                  required
+                  className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                  placeholder="Rahul Sharma"
+                  value={studentForm.name}
+                  onChange={e => setStudentForm({...studentForm, name: e.target.value})}
+                />
+              </motion.div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number</label>
               <input 
                 type="text" 
                 required
                 className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                placeholder="Rahul Sharma"
-                value={formData.name}
-                onChange={e => setFormData({...formData, name: e.target.value})}
+                placeholder="CS2021001"
+                value={studentForm.rollNumber}
+                onChange={e => setStudentForm({...studentForm, rollNumber: e.target.value})}
               />
-            </motion.div>
-          )}
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number</label>
-            <input 
-              type="text" 
-              required
-              className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-              placeholder="CS2021001"
-              value={formData.rollNumber}
-              onChange={e => setFormData({...formData, rollNumber: e.target.value})}
-            />
-          </div>
-
-          {!isLogin && (
-            <>
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+            {authMode === 'register' && (
+              <>
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                      placeholder="CSE"
+                      value={studentForm.department}
+                      onChange={e => setStudentForm({...studentForm, department: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                      placeholder="3rd Year"
+                      value={studentForm.year}
+                      onChange={e => setStudentForm({...studentForm, year: e.target.value})}
+                    />
+                  </div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                   <input 
-                    type="text" 
+                    type="email" 
                     required
                     className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                    placeholder="CSE"
-                    value={formData.department}
-                    onChange={e => setFormData({...formData, department: e.target.value})}
+                    placeholder="rahul@example.com"
+                    value={studentForm.email}
+                    onChange={e => setStudentForm({...studentForm, email: e.target.value})}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                  <input 
-                    type="text" 
-                    required
-                    className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                    placeholder="3rd Year"
-                    value={formData.year}
-                    onChange={e => setFormData({...formData, year: e.target.value})}
-                  />
-                </div>
-              </motion.div>
+                </motion.div>
+              </>
+            )}
+
+            {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+
+            <button 
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-indigo-500/30 transition-all flex items-center justify-center gap-2 mt-6"
+            >
+              {authMode === 'login' ? <LogIn size={20} /> : <UserPlus size={20} />}
+              {authMode === 'login' ? 'Sign In as Student' : 'Create Student Account'}
+            </button>
+          </form>
+        )}
+
+        {/* TEACHER FORM */}
+        {authRole === 'teacher' && (
+          <form onSubmit={handleTeacherSubmit} className="space-y-4">
+            {authMode === 'register' && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                 <input 
-                  type="email" 
+                  type="text" 
                   required
-                  className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                  placeholder="rahul@example.com"
-                  value={formData.email}
-                  onChange={e => setFormData({...formData, email: e.target.value})}
+                  className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                  placeholder="Dr. Smith"
+                  value={teacherForm.name}
+                  onChange={e => setTeacherForm({...teacherForm, name: e.target.value})}
                 />
               </motion.div>
-            </>
-          )}
+            )}
 
-          {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+              <input 
+                type="email" 
+                required
+                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                placeholder="teacher@class.edu"
+                value={teacherForm.email}
+                onChange={e => setTeacherForm({...teacherForm, email: e.target.value})}
+              />
+              <p className="text-xs text-gray-400 mt-1">Must end with @class.edu</p>
+            </div>
 
-          <button 
-            type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-indigo-500/30 transition-all flex items-center justify-center gap-2 mt-6"
-          >
-            {isLogin ? <LogIn size={20} /> : <UserPlus size={20} />}
-            {isLogin ? 'Sign In' : 'Create Account'}
-          </button>
-        </form>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <input 
+                type="password" 
+                required
+                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                placeholder="Enter password"
+                value={teacherForm.password}
+                onChange={e => setTeacherForm({...teacherForm, password: e.target.value})}
+              />
+            </div>
+
+            {authMode === 'register' && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                <input 
+                  type="text" 
+                  required
+                  className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                  placeholder="Computer Science"
+                  value={teacherForm.department}
+                  onChange={e => setTeacherForm({...teacherForm, department: e.target.value})}
+                />
+              </motion.div>
+            )}
+
+            {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+
+            <button 
+              type="submit"
+              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-purple-500/30 transition-all flex items-center justify-center gap-2 mt-6"
+            >
+              {authMode === 'login' ? <LogIn size={20} /> : <UserPlus size={20} />}
+              {authMode === 'login' ? 'Sign In as Teacher' : 'Create Teacher Account'}
+            </button>
+          </form>
+        )}
       </motion.div>
     </div>
   );
