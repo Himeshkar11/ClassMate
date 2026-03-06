@@ -19,6 +19,15 @@ export interface AttendanceRecord {
   status: 'present' | 'absent';
 }
 
+export interface QRSession {
+  id: string;
+  subjectId: string;
+  date: string;
+  token: string;
+  createdAt: number;
+  expiresAt: number;
+}
+
 export interface ClassSession {
   id: string;
   subjectId: string;

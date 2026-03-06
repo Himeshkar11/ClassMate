@@ -12,6 +12,7 @@ export const STORAGE_KEYS = {
   TASKS: 'classmate_tasks',
   PRODUCTIVITY: 'classmate_productivity',
   SUBJECTS: 'classmate_subjects',
+  QR_SESSIONS: 'classmate_qr_sessions',
 };
 
 export const loadData = <T,>(key: string, defaultValue: T): T => {
