@@ -11,8 +11,10 @@ interface AppContextType {
   tasks: Task[];
   productivity: ProductivitySession[];
   qrSessions: QRSession[];
-  login: (rollNumber: string) => boolean;
-  register: (user: User) => void;
+  loginStudent: (rollNumber: string) => boolean;
+  loginTeacher: (email: string, password: string) => boolean;
+  registerStudent: (user: User) => void;
+  registerTeacher: (user: User) => void;
   logout: () => void;
   addSubject: (subject: Subject) => void;
   addAttendance: (record: AttendanceRecord) => void;
@@ -46,17 +48,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { saveData(STORAGE_KEYS.PRODUCTIVITY, productivity); }, [productivity]);
   useEffect(() => { saveData(STORAGE_KEYS.QR_SESSIONS, qrSessions); }, [qrSessions]);
 
-  const login = (rollNumber: string) => {
+  const [teachers, setTeachers] = useState<User[]>(() => loadData<User[]>(STORAGE_KEYS.TEACHERS, []));
+  useEffect(() => { saveData(STORAGE_KEYS.TEACHERS, teachers); }, [teachers]);
+
+  const loginStudent = (rollNumber: string) => {
     const savedUser = loadData<User | null>(STORAGE_KEYS.USER, null);
-    if (savedUser && savedUser.rollNumber === rollNumber) {
+    if (savedUser && savedUser.rollNumber === rollNumber && savedUser.role === 'student') {
       setUser(savedUser);
       return true;
     }
     return false;
   };
 
-  const register = (newUser: User) => {
-    setUser(newUser);
+  const loginTeacher = (email: string, password: string) => {
+    const savedTeachers = loadData<User[]>(STORAGE_KEYS.TEACHERS, []);
+    const teacher = savedTeachers.find(t => t.email === email && t.password === password);
+    if (teacher) {
+      setUser(teacher);
+      return true;
+    }
+    return false;
+  };
+
+  const registerStudent = (newUser: User) => {
+    setUser({ ...newUser, role: 'student' });
+  };
+
+  const registerTeacher = (newUser: User) => {
+    const teacherUser = { ...newUser, role: 'teacher' as const };
+    setTeachers(prev => [...prev, teacherUser]);
+    setUser(teacherUser);
   };
 
   const logout = () => {
@@ -116,7 +137,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   return (
     <AppContext.Provider value={{
       user, subjects, attendance, schedule, tasks, productivity, qrSessions,
-      login, register, logout, addSubject, addAttendance, addSchedule, deleteSchedule,
+      loginStudent, loginTeacher, registerStudent, registerTeacher, logout, addSubject, addAttendance, addSchedule, deleteSchedule,
       addTask, updateTask, deleteTask, addProductivity, createQRSession, validateQRToken, resetData
     }}>
       {children}

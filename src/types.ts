@@ -1,9 +1,13 @@
+export type UserRole = 'student' | 'teacher';
+
 export interface User {
   name: string;
   rollNumber: string;
   department: string;
   year: string;
   email: string;
+  role: UserRole;
+  password?: string;
 }
 
 export interface Subject {

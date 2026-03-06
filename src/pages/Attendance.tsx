@@ -30,7 +30,7 @@ import {
 type TabType = 'generate' | 'scan' | 'stats';
 
 export const Attendance: React.FC = () => {
-  const { subjects, attendance, addAttendance, createQRSession, validateQRToken } = useApp();
+  const { user, subjects, attendance, addAttendance, createQRSession, validateQRToken } = useApp();
   const [activeTab, setActiveTab] = useState<TabType>('stats');
   const [selectedSubject, setSelectedSubject] = useState(subjects[0]?.id || '');
   const [expiryMinutes, setExpiryMinutes] = useState(5);
@@ -194,11 +194,18 @@ export const Attendance: React.FC = () => {
     };
   });
 
-  const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
+  const allTabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'stats', label: 'Overview', icon: <BarChart3 size={16} /> },
     { id: 'generate', label: 'Generate QR', icon: <QrCode size={16} /> },
     { id: 'scan', label: 'Scan QR', icon: <ScanLine size={16} /> },
   ];
+
+  const tabs = allTabs.filter(tab => {
+    if (tab.id === 'stats') return true;
+    if (tab.id === 'generate') return user?.role === 'teacher';
+    if (tab.id === 'scan') return user?.role === 'student';
+    return false;
+  });
 
   return (
     <div className="space-y-8">

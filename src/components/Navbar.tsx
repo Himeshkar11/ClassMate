@@ -149,7 +149,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
         <div className="flex items-center gap-3 md:pl-6 md:border-l border-gray-100">
           <div className="hidden sm:block text-right">
             <p className="text-sm font-semibold text-gray-900">Welcome, {user?.name.split(' ')[0]} 👋</p>
-            <p className="text-xs text-gray-400 font-medium">{user?.rollNumber}</p>
+            <p className="text-xs text-gray-400 font-medium">
+              {user?.role === 'teacher' ? user?.email : user?.rollNumber}
+            </p>
           </div>
           <div className="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold shadow-lg">
             {user?.name.charAt(0)}
